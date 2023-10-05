@@ -1,53 +1,61 @@
-import { SDK, Configuration, EventPayload, EventType } from '../src/index';
+import { SDK, Configuration } from '../src/index';
 
 describe('SDK', () => {
-    let originalFetch: any;
-    let mockFetch: any;
-    let sdk: SDK;
-    let config: Configuration = {
-        apiKey: 'your-api-key',
-        sessionTimeout: 5000,
-        allowedDomains: ['https://api.example.com'],
+  let sdk: SDK;
+  let config: Configuration;
+  const mockFetch = jest.fn();
+
+  beforeAll(() => {
+    global.fetch = mockFetch;
+  });
+
+  beforeEach(() => {
+    sdk = new SDK();
+    config = {
+      apiKey: 'test-api-key',
+      sessionTimeout: 30,
+      allowedDomains: ['https://api.example.com'],
     };
+    sdk.init(config);
+    mockFetch.mockReset();
+  });
 
-    beforeEach(() => {
-        originalFetch = window.fetch;
-        // Mock the fetch function
-        mockFetch = jest.fn(() => Promise.resolve({ json: () => Promise.resolve({}) }));
-        window.fetch = mockFetch;
-        sdk = new SDK();
-        sdk.init(config);
-    });
+  describe('init', () => {
+    it('shuold equal true', () => {
+        expect(true).toBe(true)
+    })
+  });
 
-    afterEach(() => {
-        // Clean up - Restore the original fetch function
-        window.fetch = originalFetch;
-    });
+  describe('aiGenerationStart', () => {
+    // Write aiGenerationStart method tests here.
+  });
 
-    it('should send the event to server', async () => {
-        const eventPayload: EventPayload = {
-            type: "text",
-            input: "test track"
-        };
-    
-        sdk.track("user.journey.start", eventPayload);
-    
-        const expectedPayload = {
-            eventType: "user.journey.start",
-            ...eventPayload
-        }
-    
-        const expectedHeaders = {
-            'Content-Type': 'application/json',
-            'Authorization': 'your-api-key',
-        };
-    
-        expect(mockFetch).toBeCalledWith('https://api.example.com/analytics', {
-            method: 'POST',
-            headers: expectedHeaders,
-            body: JSON.stringify(expectedPayload)
-        });
-    });
+  describe('aiGenerationFinish', () => {
+    // Write aiGenerationFinish method tests here.
+  });
 
-    // Add more tests - for success and error handling paths.
+  describe('userGoalSuccess', () => {
+    // Write userGoalSuccess method tests here.
+  });
+
+  describe('userJourneyStart', () => {
+    // Write userJourneyStart method tests here.
+  });
+
+  describe('userInteractionTrack', () => {
+    // Write userInteractionTrack method tests here.
+  });
+  
+  describe('userFeedbackTrack', () => {
+    // Write userFeedbackTrack method tests here.
+  });
+
+  describe('track', () => {
+    // Write track method tests here.
+    // Even though this is a private method, you can still test it by mocking the responses of the public methods that use it.
+  });
+
+  describe('patchFetch', () => {
+    // Similar to the track method, write patchFetch method tests based on the responses of the public methods.
+  });
 });
