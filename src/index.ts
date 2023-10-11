@@ -1,53 +1,12 @@
-type EventType =
-  | "ai.generation.start"
-  | "ai.generation.finish"
-  | "user.goal.success"
-  | "user.journey.start"
-  | "user.interaction.track"
-  | "user.feedback.track";
+import { RosnikEvent, UserFeedbackTrackEvent, UserInteractionTrackEvent } from "./events"
+import { getStoredJourneyId } from "./journey";
+import { Metadata } from "./metadata";
 
 export interface Configuration {
   apiKey: string;
   sessionTimeout: number;
   allowedDomains?: string[];
 }
-
-// Define the custom type for each payload here
-interface AIGenerationPayload {
-  type: "ai.start" | "ai.finish";
-  generationID?: string;
-  timestamp: Date;
-}
-
-interface UserGoalPayload {
-  type: "user.goal.success";
-  goalID?: string;
-  goalName?: string;
-}
-
-interface UserJourneyPayload {
-  type: "user.journey.start";
-  journeyID?: string;
-  journeyName?: string;
-}
-
-interface UserInteractionPayload {
-  type: "user.interaction.track";
-  interactionType?: string;
-  timestamp: Date;
-}
-
-interface UserFeedbackPayload {
-  type: "user.feedback.track";
-  feedbackText?: string;
-}
-
-type EventPayload =
-  | AIGenerationPayload
-  | UserGoalPayload
-  | UserJourneyPayload
-  | UserInteractionPayload
-  | UserFeedbackPayload;
 
 export class SDK {
   private config!: Configuration;
@@ -60,36 +19,29 @@ export class SDK {
       this.patchFetch(...args);
   }
 
-  aiGenerationStart(payload: AIGenerationPayload) {
-    this.track("ai.generation.start", payload);
+  trackUserInteraction(userId: string, interactionType: string) {
+    const event = new UserInteractionTrackEvent({
+      user_id: userId,
+      interaction_type: interactionType,
+      // TODO: function finger printing
+      _metadata: new Metadata([])
+    })
+    this.track(event)
   }
 
-  aiGenerationFinish(payload: AIGenerationPayload) {
-    this.track("ai.generation.finish", payload);
+  trackUserFeedback(userId: string, { score, openFeedback }: {score?: number; openFeedback?: string}) {
+    const event = new UserFeedbackTrackEvent({
+      user_id: userId,
+      score: score,
+      open_feedback: openFeedback,
+      _metadata: new Metadata([])
+    })
+    this.track(event)
   }
 
-  userGoalSuccess(payload: UserGoalPayload) {
-    this.track("user.goal.success", payload);
-  }
-
-  userJourneyStart(payload: UserJourneyPayload) {
-    this.track("user.journey.start", payload);
-  }
-
-  userInteractionTrack(payload: UserInteractionPayload) {
-    this.track("user.interaction.track", payload);
-  }
-
-  userFeedbackTrack(payload: UserFeedbackPayload) {
-    this.track("user.feedback.track", payload);
-  }
-
-  private track(eventType: EventType, payload: EventPayload) {
-    const event = {
-      eventType,
-      ...payload,
-    };
-    this.patchFetch("https://api.example.com/analytics", {
+  private track(event: RosnikEvent) {
+    console.log(JSON.stringify(event))
+    this.patchFetch("https://ingest.rosnik.ai/api/v1/events", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -111,7 +63,10 @@ export class SDK {
     ) {
       init.headers = {
         ...init.headers,
-        "X-Session-Id": "session-id", // obtain actual session id
+        // TODO: getStoredJourneyId()?
+        "X-ROSNIK-Journey-Id": "fake-journey",
+        // TODO: getLastInteractionId()?
+        "X-ROSNIK-Interaction-Id": "fake-interaction"
       };
     }
     return this.originalFetch.call(window, input, init);

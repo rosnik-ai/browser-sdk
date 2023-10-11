@@ -26,22 +26,6 @@ describe('SDK', () => {
     })
   });
 
-  describe('aiGenerationStart', () => {
-    // Write aiGenerationStart method tests here.
-  });
-
-  describe('aiGenerationFinish', () => {
-    // Write aiGenerationFinish method tests here.
-  });
-
-  describe('userGoalSuccess', () => {
-    // Write userGoalSuccess method tests here.
-  });
-
-  describe('userJourneyStart', () => {
-    // Write userJourneyStart method tests here.
-  });
-
   describe('userInteractionTrack', () => {
     // Write userInteractionTrack method tests here.
   });
@@ -55,7 +39,4 @@ describe('SDK', () => {
     // Even though this is a private method, you can still test it by mocking the responses of the public methods that use it.
   });
 
-  describe('patchFetch', () => {
-    // Similar to the track method, write patchFetch method tests based on the responses of the public methods.
-  });
 });
