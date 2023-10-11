@@ -1,8 +1,20 @@
 import { getOrCreateJourneyId } from './journey';
-import { Metadata } from "./metadata"
-import { monotonicFactory } from 'ulidx'
+import { Metadata } from "./metadata";
+import { monotonicFactory } from 'ulidx';
 
 const ulid = monotonicFactory();
+const LAST_EVENT_ID_KEY = "ROSNIK_LAST_EVENT_ID"
+// Tracking the last ai-request user.interaction.track event,
+// so we can send that along to backends.
+const LAST_INTERACTION_ID_KEY = "ROSNIK_LAST_INTERACTION_REQUEST_ID"
+
+export function getLastProcessedEventId() {
+    return localStorage.getItem(LAST_EVENT_ID_KEY)
+}
+
+export function getLastAIRequestInteractionId() {
+    return localStorage.getItem(LAST_INTERACTION_ID_KEY)
+}
 
 export class RosnikEvent {
     event_id: string;
@@ -25,12 +37,16 @@ export class RosnikEvent {
     ) {
         this.event_id = ulid();
         this.event_type = options.event_type;
-        this.journey_id = getOrCreateJourneyId(this.event_id);
+        this.journey_id = getOrCreateJourneyId(this);
         this.sent_at = Math.floor(Date.now() / 1000);
         this.occurred_at = options.occurred_at ? options.occurred_at : null;
         this.context = options.context ? options.context : null;
         this.user_id = options.user_id ? options.user_id : null;
         this._metadata = options._metadata;
+    }
+
+    store() {
+        localStorage.setItem(LAST_EVENT_ID_KEY, this.event_id)
     }
 }
 
@@ -52,9 +68,13 @@ export class UserEvent extends RosnikEvent {
     }
 }
 
+export enum InteractionType {
+    AI_REQUEST = "ai-request"
+}
+
 export class UserInteractionTrackEvent extends UserEvent {
     event_type: string = "user.interaction.track";
-    interaction_type: string;
+    interaction_type: InteractionType;
 
     constructor(
         options: {
@@ -63,11 +83,22 @@ export class UserInteractionTrackEvent extends UserEvent {
             context?: Record<string, any> | null,
             user_id?: string | null,
             _metadata: Metadata,
-            interaction_type: string
+            interaction_type: InteractionType
         }
     ) {
         super({ ...options, event_type: "user.interaction.track" });
         this.interaction_type = options.interaction_type;
+    }
+
+    /**
+     * Store the AI request by the user so we can send the interaction
+     * ID along to the backend, and store it as latest event.
+     */
+    store() {
+        if (this.interaction_type === InteractionType.AI_REQUEST) {
+            localStorage.setItem(LAST_INTERACTION_ID_KEY, this.event_id)
+        }
+        super.store()
     }
 }
 

@@ -1,6 +1,7 @@
-import { RosnikEvent, UserFeedbackTrackEvent, UserInteractionTrackEvent } from "./events"
-import { getStoredJourneyId } from "./journey";
+import { getStoredJourneyId } from "journey";
+import { InteractionType, RosnikEvent, UserFeedbackTrackEvent, UserInteractionTrackEvent, getLastAIRequestInteractionId } from "./events";
 import { Metadata } from "./metadata";
+import fetchIntercept from 'fetch-intercept';
 
 export interface Configuration {
   apiKey: string;
@@ -10,16 +11,44 @@ export interface Configuration {
 
 export class SDK {
   private config!: Configuration;
-  private originalFetch: any;
-  
+  private unregister!: () => void;
+
   init(config: Configuration) {
     this.config = config;
-    this.originalFetch = window.fetch;
-    window.fetch = (...args: Parameters<typeof fetch>) =>
-      this.patchFetch(...args);
+    const sdk = this;
+    this.unregister = fetchIntercept.register({
+      request: function (url, config) {
+        if (
+          !sdk.config.allowedDomains ||
+          sdk.config.allowedDomains.some((domain) =>
+            url.toString().includes(domain),
+          )
+        ) {
+        
+        const storedJourneyId = getStoredJourneyId()
+        const storedInteractionId = getLastAIRequestInteractionId()
+        let headers: {[key: string]: string} = {}
+        if (storedJourneyId) headers["X-ROSNIK-Journey-Id"] = storedJourneyId
+        if (storedInteractionId) headers["X-ROSNIK-Interaction-Id"] = storedInteractionId
+        return [url, {headers, ...config}];
+      }
+      // Don't modify if it's not on the flight path. 
+      return [url, config]
+      },
+    });
   }
 
-  trackUserInteraction(userId: string, interactionType: string) {
+  trackUserAIRequest(userId: string) {
+    const event = new UserInteractionTrackEvent({
+      user_id: userId,
+      interaction_type: InteractionType.AI_REQUEST,
+      // TODO: function finger printing
+      _metadata: new Metadata([])
+    })
+    this.track(event)
+  }
+
+  trackUserInteraction(userId: string, interactionType: InteractionType) {
     const event = new UserInteractionTrackEvent({
       user_id: userId,
       interaction_type: interactionType,
@@ -29,7 +58,7 @@ export class SDK {
     this.track(event)
   }
 
-  trackUserFeedback(userId: string, { score, openFeedback }: {score?: number; openFeedback?: string}) {
+  trackUserFeedback(userId: string, { score, openFeedback }: { score?: number; openFeedback?: string }) {
     const event = new UserFeedbackTrackEvent({
       user_id: userId,
       score: score,
@@ -41,34 +70,13 @@ export class SDK {
 
   private track(event: RosnikEvent) {
     console.log(JSON.stringify(event))
-    this.patchFetch("https://ingest.rosnik.ai/api/v1/events", {
+    fetch("https://ingest.rosnik.ai/api/v1/events", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.config.apiKey}`,
       },
       body: JSON.stringify(event),
-    });
-  }
-
-  private patchFetch(
-    input: RequestInfo | URL,
-    init: RequestInit | undefined = {},
-  ): Promise<Response> {
-    if (
-      !this.config.allowedDomains ||
-      this.config.allowedDomains.some((domain) =>
-        input.toString().includes(domain),
-      )
-    ) {
-      init.headers = {
-        ...init.headers,
-        // TODO: getStoredJourneyId()?
-        "X-ROSNIK-Journey-Id": "fake-journey",
-        // TODO: getLastInteractionId()?
-        "X-ROSNIK-Interaction-Id": "fake-interaction"
-      };
-    }
-    return this.originalFetch.call(window, input, init);
+    }).then(console.log).catch(console.log);
   }
 }
