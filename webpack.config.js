@@ -13,7 +13,7 @@ module.exports = {
         }]
     },
     output: {
-        filename: 'index.js',
+        filename: 'rosnik.js',
         path: path.resolve(__dirname, 'dist')
     },
     resolve: {

@@ -1,7 +1,9 @@
-import { getStoredJourneyId } from "journey";
+import { getStoredJourneyId } from "./journey";
 import { InteractionType, RosnikEvent, UserFeedbackTrackEvent, UserInteractionTrackEvent, getLastAIRequestInteractionId } from "./events";
 import { Metadata } from "./metadata";
 import fetchIntercept from 'fetch-intercept';
+import {ulid} from "ulidx";
+import Cookies from "js-cookie";
 
 export interface Configuration {
   apiKey: string;
@@ -12,10 +14,12 @@ export interface Configuration {
 export class SDK {
   private config!: Configuration;
   private unregister!: () => void;
+  private deviceId?: string;
 
   init(config: Configuration) {
     this.config = config;
     const sdk = this;
+    this.deviceId = this.initDeviceIdCookie()
     this.unregister = fetchIntercept.register({
       request: function (url, config) {
         if (
@@ -24,18 +28,30 @@ export class SDK {
             url.toString().includes(domain),
           )
         ) {
-        
-        const storedJourneyId = getStoredJourneyId()
-        const storedInteractionId = getLastAIRequestInteractionId()
-        let headers: {[key: string]: string} = {}
-        if (storedJourneyId) headers["X-ROSNIK-Journey-Id"] = storedJourneyId
-        if (storedInteractionId) headers["X-ROSNIK-Interaction-Id"] = storedInteractionId
-        return [url, {headers, ...config}];
-      }
-      // Don't modify if it's not on the flight path. 
-      return [url, config]
+
+          const storedJourneyId = getStoredJourneyId()
+          const storedInteractionId = getLastAIRequestInteractionId()
+          let headers: { [key: string]: string } = {}
+          if (storedJourneyId) headers["X-ROSNIK-Journey-Id"] = storedJourneyId
+          if (storedInteractionId) headers["X-ROSNIK-Interaction-Id"] = storedInteractionId
+          if (sdk.deviceId) headers["X-ROSNIK-Device-Id"] = sdk.deviceId
+          return [url, { headers, ...config }];
+        }
+        // Don't modify if it's not on the flight path. 
+        return [url, config]
       },
     });
+  }
+
+  private initDeviceIdCookie() {
+    const existingCookie = Cookies.get("rosnik-device-id")
+    if (existingCookie) return existingCookie
+    const expiryDate = new Date();
+    expiryDate.setMonth(expiryDate.getMonth() + 9); // Set expiry date to 9 months from now
+    // TODO: probably needs some unique cookie domain / value scoping?
+    const deviceId = ulid()
+    Cookies.set('rosnik-device-id', deviceId, { expires: 30 * 9, sameSite: "Lax" })
+    return deviceId
   }
 
   trackUserAIRequest(userId: string) {

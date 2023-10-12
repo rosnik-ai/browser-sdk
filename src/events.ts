@@ -95,7 +95,9 @@ export class UserInteractionTrackEvent extends UserEvent {
      * ID along to the backend, and store it as latest event.
      */
     store() {
+        console.log("Storing user interaction", this.interaction_type)
         if (this.interaction_type === InteractionType.AI_REQUEST) {
+            console.log("Storing AI interaction")
             localStorage.setItem(LAST_INTERACTION_ID_KEY, this.event_id)
         }
         super.store()

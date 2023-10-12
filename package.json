@@ -19,6 +19,7 @@
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^29.5.5",
+    "@types/js-cookie": "^3.0.4",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "jsdom": "^22.1.0",
@@ -52,6 +53,8 @@
   },
   "dependencies": {
     "fetch-intercept": "^2.4.0",
-    "ulidx": "^2.2.0"
+    "js-cookie": "^3.0.5",
+    "ulidx": "^2.2.0",
+    "whatwg-fetch": "^3.6.19"
   }
 }
