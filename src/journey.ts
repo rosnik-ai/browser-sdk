@@ -12,7 +12,6 @@ export function getOrCreateJourneyId(newEvent: RosnikEvent) {
     // we need a new journey ID.
     if (!lastProcessedEventId) {
         const journeyId = createStoredJourneyId()
-        newEvent.store()
         return journeyId
     }
 
@@ -32,18 +31,15 @@ export function getOrCreateJourneyId(newEvent: RosnikEvent) {
         journeyId = createStoredJourneyId()
     }
 
-    // Store the last known event ID, so we can compare on the next event.
-    newEvent.store()
-
     return journeyId;
 }
 
 function createStoredJourneyId() {
     const journeyId = ulid()
-    sessionStorage.setItem(JOURNEY_ID_KEY, journeyId);
+    localStorage.setItem(JOURNEY_ID_KEY, journeyId);
     return journeyId;
 }
 
 export function getStoredJourneyId() {
-    return sessionStorage.getItem(JOURNEY_ID_KEY)
+    return localStorage.getItem(JOURNEY_ID_KEY)
 }

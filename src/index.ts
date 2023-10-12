@@ -14,7 +14,7 @@ export interface Configuration {
 export class SDK {
   private config!: Configuration;
   private unregister!: () => void;
-  private deviceId?: string;
+  private deviceId!: string;
 
   init(config: Configuration) {
     this.config = config;
@@ -46,6 +46,7 @@ export class SDK {
   private initDeviceIdCookie() {
     const existingCookie = Cookies.get("rosnik-device-id")
     if (existingCookie) return existingCookie
+
     const expiryDate = new Date();
     expiryDate.setMonth(expiryDate.getMonth() + 9); // Set expiry date to 9 months from now
     // TODO: probably needs some unique cookie domain / value scoping?
@@ -57,6 +58,7 @@ export class SDK {
   trackUserAIRequest(userId: string) {
     const event = new UserInteractionTrackEvent({
       user_id: userId,
+      device_id: this.deviceId,
       interaction_type: InteractionType.AI_REQUEST,
       // TODO: function finger printing
       _metadata: new Metadata([])
@@ -67,6 +69,7 @@ export class SDK {
   trackUserInteraction(userId: string, interactionType: InteractionType) {
     const event = new UserInteractionTrackEvent({
       user_id: userId,
+      device_id: this.deviceId,
       interaction_type: interactionType,
       // TODO: function finger printing
       _metadata: new Metadata([])
@@ -77,6 +80,7 @@ export class SDK {
   trackUserFeedback(userId: string, { score, openFeedback }: { score?: number; openFeedback?: string }) {
     const event = new UserFeedbackTrackEvent({
       user_id: userId,
+      device_id: this.deviceId,
       score: score,
       open_feedback: openFeedback,
       _metadata: new Metadata([])
@@ -86,6 +90,12 @@ export class SDK {
 
   private track(event: RosnikEvent) {
     console.log(JSON.stringify(event))
+
+    // Store the last even we processed, so 
+    // we can generate journey IDs from it
+    // if needed.
+    event.store()
+
     fetch("https://ingest.rosnik.ai/api/v1/events", {
       method: "POST",
       headers: {
