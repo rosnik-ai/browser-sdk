@@ -3,6 +3,7 @@ import { monotonicFactory, decodeTime } from 'ulidx';
 
 const ulid = monotonicFactory();
 const JOURNEY_ID_KEY = "ROSNIK_JOURNEY_ID"
+// Use session timeout from SDK
 const TIMEOUT = 30 * 60 * 1000 // 30 minutes in milliseconds
 
 export function getOrCreateJourneyId(newEvent: RosnikEvent) {

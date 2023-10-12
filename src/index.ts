@@ -7,7 +7,6 @@ import Cookies from "js-cookie";
 
 export interface Configuration {
   apiKey: string;
-  sessionTimeout: number;
   allowedDomains?: string[];
 }
 
