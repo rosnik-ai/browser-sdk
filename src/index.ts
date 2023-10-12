@@ -27,10 +27,9 @@ export class SDK {
             url.toString().includes(domain),
           )
         ) {
-
           const storedJourneyId = getStoredJourneyId()
           const storedInteractionId = getLastAIRequestInteractionId()
-          let headers: { [key: string]: string } = {}
+          let headers: { [key: string]: string } = config.headers || {};
           if (storedJourneyId) headers["X-ROSNIK-Journey-Id"] = storedJourneyId
           if (storedInteractionId) headers["X-ROSNIK-Interaction-Id"] = storedInteractionId
           if (sdk.deviceId) headers["X-ROSNIK-Device-Id"] = sdk.deviceId
@@ -88,8 +87,6 @@ export class SDK {
   }
 
   private track(event: RosnikEvent) {
-    console.log(JSON.stringify(event))
-
     // Store the last even we processed, so 
     // we can generate journey IDs from it
     // if needed.
