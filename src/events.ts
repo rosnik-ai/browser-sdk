@@ -25,6 +25,7 @@ export class RosnikEvent {
     context: Record<string, any> | null;
     user_id: string | null;
     device_id: string;
+    user_interaction_id?: string | null;
     _metadata: Metadata;
 
     constructor(
@@ -34,6 +35,7 @@ export class RosnikEvent {
             context?: Record<string, any> | null,
             user_id?: string | null,
             device_id: string,
+            user_interaction_id?: string | null;
             _metadata: Metadata
         }
     ) {
@@ -45,6 +47,7 @@ export class RosnikEvent {
         this.context = options.context ? options.context : null;
         this.user_id = options.user_id ? options.user_id : null;
         this.device_id = options.device_id;
+        this.user_interaction_id = options.user_interaction_id;
         this._metadata = options._metadata;
     }
 
@@ -64,6 +67,7 @@ export class UserEvent extends RosnikEvent {
             context?: Record<string, any> | null,
             user_id?: string | null,
             device_id: string,
+            user_interaction_id?: string | null;
             _metadata: Metadata
         }
     ) {
@@ -88,7 +92,8 @@ export class UserInteractionTrackEvent extends UserEvent {
             user_id?: string | null,
             device_id: string,
             _metadata: Metadata,
-            interaction_type: InteractionType
+            interaction_type: InteractionType,
+            user_interaction_id?: string | null;
         }
     ) {
         super({ ...options, event_type: "user.interaction.track" });
@@ -124,6 +129,7 @@ export class UserFeedbackTrackEvent extends UserEvent {
             _metadata: Metadata,
             score?: number,
             open_feedback?: string
+            user_interaction_id?: string | null;
         }
     ) {
         super({ ...options, event_type: "user.interaction.track" });

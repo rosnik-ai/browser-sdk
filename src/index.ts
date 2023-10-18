@@ -14,11 +14,13 @@ export class SDK {
   private config!: Configuration;
   private unregister!: () => void;
   private deviceId!: string;
+  private userId!: string;
 
   init(config: Configuration) {
     this.config = config;
     const sdk = this;
     this.deviceId = this.initDeviceIdCookie()
+    this.userId = "anonymous";
     this.unregister = fetchIntercept.register({
       request: function (url, config) {
         if (
@@ -41,6 +43,10 @@ export class SDK {
     });
   }
 
+  setUser(userId: string) {
+    this.userId = userId;
+  }
+
   private initDeviceIdCookie() {
     const existingCookie = Cookies.get("rosnik-device-id")
     if (existingCookie) return existingCookie
@@ -53,9 +59,9 @@ export class SDK {
     return deviceId
   }
 
-  trackUserAIRequest(userId: string) {
+  trackUserAIRequest() {
     const event = new UserInteractionTrackEvent({
-      user_id: userId,
+      user_id: this.userId,
       device_id: this.deviceId,
       interaction_type: InteractionType.AI_REQUEST,
       // TODO: function finger printing
@@ -64,23 +70,25 @@ export class SDK {
     this.track(event)
   }
 
-  trackUserInteraction(userId: string, interactionType: InteractionType) {
+  trackUserInteraction(interactionType: InteractionType) {
     const event = new UserInteractionTrackEvent({
-      user_id: userId,
+      user_id: this.userId,
       device_id: this.deviceId,
       interaction_type: interactionType,
       // TODO: function finger printing
+      user_interaction_id: interactionType === InteractionType.AI_REQUEST ? null : getLastAIRequestInteractionId(),
       _metadata: new Metadata([])
     })
     this.track(event)
   }
 
-  trackUserFeedback(userId: string, { score, openFeedback }: { score?: number; openFeedback?: string }) {
+  trackUserFeedback({ score, openFeedback }: { score?: number; openFeedback?: string }) {
     const event = new UserFeedbackTrackEvent({
-      user_id: userId,
+      user_id: this.userId,
       device_id: this.deviceId,
       score: score,
       open_feedback: openFeedback,
+      user_interaction_id: getLastAIRequestInteractionId(),
       _metadata: new Metadata([])
     })
     this.track(event)
