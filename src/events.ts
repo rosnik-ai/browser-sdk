@@ -42,7 +42,7 @@ export class RosnikEvent {
         this.event_id = ulid();
         this.event_type = options.event_type;
         this.journey_id = getOrCreateJourneyId(this);
-        this.sent_at = Math.floor(Date.now() / 1000);
+        this.sent_at = Math.floor(Date.now());
         this.occurred_at = options.occurred_at ? options.occurred_at : null;
         this.context = options.context ? options.context : null;
         this.user_id = options.user_id ? options.user_id : null;
