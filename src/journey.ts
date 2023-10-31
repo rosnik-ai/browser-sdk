@@ -1,10 +1,9 @@
+import { ConfigStore } from './config';
 import { RosnikEvent, getLastProcessedEventId } from './events';
 import { monotonicFactory, decodeTime } from 'ulidx';
 
 const ulid = monotonicFactory();
-const JOURNEY_ID_KEY = "ROSNIK_JOURNEY_ID"
-// Use session timeout from SDK
-const TIMEOUT = 30 * 60 * 1000 // 30 minutes in milliseconds
+export const JOURNEY_ID_KEY = "ROSNIK_JOURNEY_ID"
 
 export function getOrCreateJourneyId(newEvent: RosnikEvent) {
     const newEventTimestamp = decodeTime(newEvent.event_id);
@@ -22,7 +21,7 @@ export function getOrCreateJourneyId(newEvent: RosnikEvent) {
     let journeyId = getStoredJourneyId()
     // If the last event ID is outside of our window,
     // generate a new journey ID.
-    if (newEventTimestamp - lastProcessedEventTimestamp > TIMEOUT) {
+    if (newEventTimestamp - lastProcessedEventTimestamp > ConfigStore.getJourneyTimeout()) {
         journeyId = createStoredJourneyId()
     }
 
@@ -42,5 +41,7 @@ function createStoredJourneyId() {
 }
 
 export function getStoredJourneyId() {
-    return localStorage.getItem(JOURNEY_ID_KEY)
+    const storedId = localStorage.getItem(JOURNEY_ID_KEY)
+    if (!storedId) return createStoredJourneyId()
+    return storedId
 }

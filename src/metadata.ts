@@ -1,3 +1,5 @@
+import { ConfigStore } from "./config";
+
 class StaticMetadata {
     environment: string | null;
     runtime: string;
@@ -5,24 +7,23 @@ class StaticMetadata {
     sdk_version: string;
 
     constructor(
-        // TODO: figure out how to set environment.
-        // environment: string | null = process.env.ROSNIK_ENVIRONMENT || null,
+        environment: string | null = ConfigStore.getEnvironment(),
         runtime: string = 'javascript',
-        // TODO: figure out what to do with this for javascript
-        sdk_version: string = '0.0.14'
+        sdk_version: string = 'browser-sdk/0.0.1'
     ) {
-        this.environment = null;
+        this.environment = environment;
         this.runtime = runtime;
-        this.runtime_version = null;
+        this.runtime_version = navigator.userAgent;
         this.sdk_version = sdk_version;
     }
 }
 
 export class Metadata extends StaticMetadata {
-    function_fingerprint: string[];
+    function_fingerprint: string;
 
-    constructor(function_fingerprint: string[]) {
+    constructor() {
         super();
-        this.function_fingerprint = function_fingerprint;
+        // We don't track these in the browser.
+        this.function_fingerprint = "";
     }
 }
