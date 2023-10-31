@@ -1,7 +1,7 @@
 {
   "name": "@rosnik/browser-sdk",
   "version": "0.0.1",
-  "description": "Description of your SDK",
+  "description": "ROSNIK Browser SDK",
   "main": "dist/index.js",
   "scripts": {
     "build": "rm -rf dist/* && tsc --project tsconfig.build.json",
