@@ -9,6 +9,7 @@ import { ConfigStore } from "./config";
 export interface RosnikConfiguration {
   apiKey: string;
   allowedDomains?: string[];
+  environment?: string;
 }
 
 export class Rosnik {

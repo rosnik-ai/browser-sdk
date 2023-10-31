@@ -57,6 +57,31 @@ describe('Rosnik', () => {
 
       expect(registerSpy).not.toHaveBeenCalled();
     });
+
+    it('should correctly set environment in ConfigStore when provided', () => {
+      const mockConfig = {
+          apiKey: 'testKey',
+          allowedDomains: ['example.com'],
+          environment: 'staging'
+      };
+
+      Rosnik.init(mockConfig);
+
+      expect(ConfigStore.getEnvironment()).toBe('staging');
+  });
+
+  it('should default to a specific environment if not provided', () => {
+      const mockConfig = {
+          apiKey: 'testKey',
+          allowedDomains: ['example.com']
+      };
+
+      Rosnik.init(mockConfig);
+
+      // Adjust this to whatever your default is
+      expect(ConfigStore.getEnvironment()).toBeNull();
+  });
+
   });
 
   describe('track', () => {

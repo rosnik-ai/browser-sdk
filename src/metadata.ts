@@ -9,7 +9,7 @@ class StaticMetadata {
     constructor(
         environment: string | null = ConfigStore.getEnvironment(),
         runtime: string = 'javascript',
-        sdk_version: string = 'browser-sdk/0.0.1'
+        sdk_version: string = 'browser-sdk/0.0.2'
     ) {
         this.environment = environment;
         this.runtime = runtime;
