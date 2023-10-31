@@ -19,6 +19,11 @@
   ],
   "author": "Nick DiRienzo <nick@rosnik.ai>",
   "license": "MIT",
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],  
   "devDependencies": {
     "@types/jest": "^29.5.5",
     "@types/js-cookie": "^3.0.4",
