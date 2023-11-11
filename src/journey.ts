@@ -1,10 +1,24 @@
 import { ConfigStore } from './config';
 import { RosnikEvent, getLastProcessedEventId } from './events';
-import { monotonicFactory, decodeTime } from 'ulidx';
+import { ulid, decodeTime } from 'ulidx';
 
-const ulid = monotonicFactory();
 export const JOURNEY_ID_KEY = "ROSNIK_JOURNEY_ID"
 
+export function createStoredJourneyId() {
+    const journeyId = ulid()
+    localStorage.setItem(JOURNEY_ID_KEY, journeyId);
+    return journeyId;
+}
+
+export function getStoredJourneyId() {
+    const storedId = localStorage.getItem(JOURNEY_ID_KEY)
+    if (!storedId) return createStoredJourneyId()
+    return storedId
+}
+
+/**
+ * This is called when new events are created.
+ */
 export function getOrCreateJourneyId(newEvent: RosnikEvent) {
     const newEventTimestamp = decodeTime(newEvent.event_id);
     const lastProcessedEventId = getLastProcessedEventId()
@@ -32,16 +46,4 @@ export function getOrCreateJourneyId(newEvent: RosnikEvent) {
     }
 
     return journeyId;
-}
-
-function createStoredJourneyId() {
-    const journeyId = ulid()
-    localStorage.setItem(JOURNEY_ID_KEY, journeyId);
-    return journeyId;
-}
-
-export function getStoredJourneyId() {
-    const storedId = localStorage.getItem(JOURNEY_ID_KEY)
-    if (!storedId) return createStoredJourneyId()
-    return storedId
 }

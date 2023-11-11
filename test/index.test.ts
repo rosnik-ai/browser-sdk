@@ -1,6 +1,9 @@
+import { JOURNEY_ID_KEY } from '../src/journey';
 import { ConfigStore } from '../src/config';
 import { Rosnik } from '../src/index';
 import fetchIntercept from 'fetch-intercept';
+import { decodeTime, ulid } from 'ulidx';
+import { LAST_EVENT_ID_KEY } from '../src/events';
 
 jest.mock('fetch-intercept');
 
@@ -12,7 +15,7 @@ describe('Rosnik', () => {
       // Clean up state and mocks
       ConfigStore.resetConfig();
       // Clear all cookies before each test
-      document.cookie = '';  
+      document.cookie = '';
       (fetchIntercept.register as jest.Mock).mockClear();
     });
 
@@ -60,27 +63,27 @@ describe('Rosnik', () => {
 
     it('should correctly set environment in ConfigStore when provided', () => {
       const mockConfig = {
-          apiKey: 'testKey',
-          allowedDomains: ['example.com'],
-          environment: 'staging'
+        apiKey: 'testKey',
+        allowedDomains: ['example.com'],
+        environment: 'staging'
       };
 
       Rosnik.init(mockConfig);
 
       expect(ConfigStore.getEnvironment()).toBe('staging');
-  });
+    });
 
-  it('should default to a specific environment if not provided', () => {
+    it('should default to a specific environment if not provided', () => {
       const mockConfig = {
-          apiKey: 'testKey',
-          allowedDomains: ['example.com']
+        apiKey: 'testKey',
+        allowedDomains: ['example.com']
       };
 
       Rosnik.init(mockConfig);
 
       // Adjust this to whatever your default is
       expect(ConfigStore.getEnvironment()).toBeNull();
-  });
+    });
 
   });
 
@@ -92,7 +95,7 @@ describe('Rosnik', () => {
       } as Response));
       ConfigStore.resetConfig();
       // Clear all cookies before each test
-      document.cookie = ''; 
+      document.cookie = '';
     });
 
     it('should send event data to the API', async () => {
@@ -121,4 +124,97 @@ describe('Rosnik', () => {
     });
 
   });
+
+  describe('startJourney', () => {
+    const originalLocalStorage = global.localStorage;
+    let now: number;
+
+    beforeEach(() => {
+      ConfigStore.setConfig({
+        apiKey: ''
+      })
+      // Mock time
+      now = Date.now();
+      jest.useFakeTimers().setSystemTime(now);
+    });
+
+    afterEach(() => {
+      // Restore real timers
+      jest.useRealTimers();
+      // Clear localStorage
+      localStorage.clear();
+      ConfigStore.resetConfig();
+    });
+
+    afterAll(() => {
+      // Restore the original localStorage
+      global.localStorage = originalLocalStorage;
+    });
+
+    test('should create a new journey if no last event and journey is expired', () => {
+      const journeyTimeout = ConfigStore.getJourneyTimeout();
+      const expiredTime = now - journeyTimeout - 1;
+      localStorage.setItem(JOURNEY_ID_KEY, ulid(expiredTime));
+
+      Rosnik.init({
+        apiKey: ''
+      })
+
+      const newJourneyId = localStorage.getItem(JOURNEY_ID_KEY);
+      expect(newJourneyId).not.toBeNull();
+      expect(decodeTime(newJourneyId as string)).toBeGreaterThan(expiredTime);
+    });
+
+    test('should do nothing if last event and journey are within timeout', () => {
+      // Set up a scenario where both are within timeout
+      const withinTimeout = now - 5000; // 5 seconds ago
+      const journeyId = ulid(withinTimeout)
+      const lastEventId = ulid(withinTimeout)
+      localStorage.setItem(JOURNEY_ID_KEY, journeyId);
+      localStorage.setItem(LAST_EVENT_ID_KEY, lastEventId);
+
+      Rosnik.init({
+        apiKey: ''
+      })
+
+      // Expect no changes
+      expect(localStorage.getItem(JOURNEY_ID_KEY)).toBe(journeyId);
+      expect(localStorage.getItem(LAST_EVENT_ID_KEY)).toBe(lastEventId);
+    });
+
+    test('should create a new journey and reset event storage if both are expired', () => {
+      const journeyTimeout = ConfigStore.getJourneyTimeout();
+      const expiredTime = now - journeyTimeout - 1;
+      const journeyId = ulid(expiredTime)
+      const lastEventId = ulid(expiredTime)
+      localStorage.setItem(JOURNEY_ID_KEY, journeyId);
+      localStorage.setItem(LAST_EVENT_ID_KEY, lastEventId);
+
+      Rosnik.init({
+        apiKey: ''
+      })
+
+      const newJourneyId = localStorage.getItem(JOURNEY_ID_KEY);
+      expect(newJourneyId).not.toBeNull();
+      expect(decodeTime(newJourneyId as string)).toBeGreaterThan(expiredTime);
+      expect(localStorage.getItem(LAST_EVENT_ID_KEY)).toBeNull();
+    });
+
+    test('should reset last event storage if last event is expired but journey is within timeout', () => {
+      const journeyTimeout = ConfigStore.getJourneyTimeout();
+      const expiredTime = now - journeyTimeout - 1;
+      const withinTimeout = now - 5000; // 5 seconds ago
+      const journeyId = ulid(withinTimeout)
+      const lastEventId = ulid(expiredTime)
+      localStorage.setItem(JOURNEY_ID_KEY, journeyId);
+      localStorage.setItem(LAST_EVENT_ID_KEY, lastEventId);
+
+      Rosnik.init({
+        apiKey: ''
+      })
+
+      expect(localStorage.getItem(LAST_EVENT_ID_KEY)).toBeNull();
+      expect(localStorage.getItem(JOURNEY_ID_KEY)).toBe(journeyId);
+    });
+  })
 });

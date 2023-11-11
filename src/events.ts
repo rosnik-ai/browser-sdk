@@ -1,13 +1,20 @@
 import { ConfigStore } from './config';
 import { getOrCreateJourneyId } from './journey';
 import { Metadata } from "./metadata";
-import { monotonicFactory } from 'ulidx';
+import { ulid } from 'ulidx';
 
-const ulid = monotonicFactory();
 export const LAST_EVENT_ID_KEY = "ROSNIK_LAST_EVENT_ID"
+
+export function setLastProcessedEventId(eventId: string) {
+    localStorage.setItem(LAST_EVENT_ID_KEY, eventId)
+}
 
 export function getLastProcessedEventId() {
     return localStorage.getItem(LAST_EVENT_ID_KEY)
+}
+
+export function clearLastProcessedEventId() {
+    localStorage.removeItem(LAST_EVENT_ID_KEY)
 }
 
 export class RosnikEvent {
@@ -44,7 +51,7 @@ export class RosnikEvent {
     }
 
     store() {
-        localStorage.setItem(LAST_EVENT_ID_KEY, this.event_id)
+        setLastProcessedEventId(this.event_id)
     }
 }
 

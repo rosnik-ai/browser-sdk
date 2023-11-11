@@ -9,7 +9,7 @@ class StaticMetadata {
     constructor(
         environment: string | null = ConfigStore.getEnvironment(),
         runtime: string = 'javascript',
-        sdk_version: string = 'browser-sdk/0.0.2'
+        sdk_version: string = 'browser-sdk/0.0.3'
     ) {
         this.environment = environment;
         this.runtime = runtime;
@@ -19,11 +19,7 @@ class StaticMetadata {
 }
 
 export class Metadata extends StaticMetadata {
-    function_fingerprint: string;
-
     constructor() {
         super();
-        // We don't track these in the browser.
-        this.function_fingerprint = "";
     }
 }

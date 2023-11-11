@@ -1,6 +1,7 @@
 export interface Configuration {
     apiKey: string;
     allowedDomains?: string[];
+    // in ms
     journeyTimeout?: number;
     user?: string;
     deviceId?: string;

@@ -1,8 +1,8 @@
-import { getStoredJourneyId } from "./journey";
-import { InteractionType, RosnikEvent, UserFeedbackTrackEvent, UserGoalSuccessEvent, UserInteractionTrackEvent } from "./events";
+import { createStoredJourneyId, getStoredJourneyId } from "./journey";
+import { InteractionType, RosnikEvent, UserFeedbackTrackEvent, UserGoalSuccessEvent, UserInteractionTrackEvent, clearLastProcessedEventId, getLastProcessedEventId, setLastProcessedEventId } from "./events";
 import { Metadata } from "./metadata";
 import fetchIntercept from 'fetch-intercept';
-import { ulid } from "ulidx";
+import { decodeTime, ulid } from "ulidx";
 import Cookies from "js-cookie";
 import { ConfigStore } from "./config";
 
@@ -10,12 +10,13 @@ export interface RosnikConfiguration {
   apiKey: string;
   allowedDomains?: string[];
   environment?: string;
+  journeyTimeout?: number;
 }
 
 export class Rosnik {
   private static unregister: () => void;
 
-  private constructor() {}
+  private constructor() { }
 
   static init(config: RosnikConfiguration) {
     const deviceId = this.initDeviceIdCookie()
@@ -23,18 +24,18 @@ export class Rosnik {
       ...config,
       deviceId
     });
-    
 
-    this.unregister = () => {};
+    this.startJourney();
+    this.startHeartbeat();
+
+    this.unregister = () => { };
     if (config.allowedDomains) {
       this.unregister = fetchIntercept.register({
         request: function (url, config) {
-          if (
-            !ConfigStore.getAllowedDomains() ||
-            ConfigStore.getAllowedDomains().some((domain) =>
-              url.toString().includes(domain),
-            )
-          ) {
+          const shouldModify = ConfigStore.getAllowedDomains().some((domain) =>
+            url.toString().includes(domain),
+          )
+          if (shouldModify) {
             const storedJourneyId = getStoredJourneyId()
             let headers: { [key: string]: string } = config.headers || {};
             if (storedJourneyId) headers["X-ROSNIK-Journey-Id"] = storedJourneyId
@@ -52,6 +53,37 @@ export class Rosnik {
     ConfigStore.setUserId(userId);
   }
 
+  private static startJourney() {
+    const lastProcessedEventId = getLastProcessedEventId()
+    const journeyId = getStoredJourneyId()
+    const journeyTimestamp = decodeTime(journeyId)
+    const lastEventTimestamp = lastProcessedEventId ? decodeTime(lastProcessedEventId) : null
+    const now = Date.now()
+    const journeyExpired = now - journeyTimestamp > ConfigStore.getJourneyTimeout()
+    const lastEventExpired = lastEventTimestamp && now - lastEventTimestamp > ConfigStore.getJourneyTimeout()
+    
+    if (!lastProcessedEventId && journeyExpired) {
+      createStoredJourneyId();
+      return;
+    }
+
+    if (lastEventExpired && journeyExpired) {
+      createStoredJourneyId();
+      clearLastProcessedEventId();
+      return;
+    }
+
+    if (lastEventExpired) {
+      clearLastProcessedEventId();
+    }
+  }
+
+  private static startHeartbeat() {
+    setInterval(() => {
+      setLastProcessedEventId(ulid())
+    }, 5 * 60 * 1000)
+  }
+
   private static initDeviceIdCookie() {
     const existingCookie = Cookies.get("rosnik-device-id")
     if (existingCookie) return existingCookie
@@ -63,29 +95,29 @@ export class Rosnik {
     return deviceId
   }
 
-  static trackUserAIRequest({ userInput, context }: { userInput?: string, context?: Record<string, any>}) {
+  static trackUserAIRequest({ userInput, context }: { userInput?: string, context?: Record<string, any> }) {
     const event = new UserInteractionTrackEvent({
       interaction_type: InteractionType.AI_REQUEST,
       _metadata: new Metadata(),
-      context: {...context, user_input: userInput}
+      context: { ...context, user_input: userInput }
     })
     this.track(event)
   }
 
 
-  static trackUserTextEdit({before, after, context}: {before: string, after: string, context?: Record<string, any>}) {
+  static trackUserTextEdit({ before, after, context }: { before: string, after: string, context?: Record<string, any> }) {
     const event = new UserInteractionTrackEvent({
       interaction_type: InteractionType.EDIT_TEXT,
       _metadata: new Metadata(),
-      context: {...context, before: before, after: after}
+      context: { ...context, before: before, after: after }
     })
     this.track(event)
   }
 
-  static trackUserGoal({ goalName, context }: {goalName: string, context?: Record<string, any>}) {
+  static trackUserGoal({ goalName, context }: { goalName: string, context?: Record<string, any> }) {
     const event = new UserGoalSuccessEvent({
       _metadata: new Metadata(),
-      context: {...context, goal_name: goalName}
+      context: { ...context, goal_name: goalName }
     })
     this.track(event)
   }
